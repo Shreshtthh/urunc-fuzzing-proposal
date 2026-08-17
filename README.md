@@ -4,7 +4,7 @@
 
 I wrote **12 native Go fuzz targets** (`testing.F`) across 4 packages in urunc, testing config parsing, hypervisor resource conversion, subnet mask validation, and IPC serialization. The fuzzers found **2 distinct bugs** using property-based assertions, not just crash detection. This repo contains my fuzz targets, findings, and a detailed technical plan for the 12-week mentorship.
 
-**Fork with fuzz tests:** [github.com/YOUR_USERNAME/urunc/tree/fuzzing-initial-targets](https://github.com/YOUR_USERNAME/urunc/tree/fuzzing-initial-targets)
+**Fork with fuzz tests:** [github.com/Shreshtthh/urunc/tree/fuzzing-initial-targets](https://github.com/Shreshtthh/urunc/tree/fuzzing-initial-targets)
 
 ---
 
@@ -75,22 +75,22 @@ if maskVal != 0 && maskVal != 0xFFFFFFFF && (inverted&(inverted+1)) != 0 {
 
 Every function in urunc that parses external input:
 
-### ✅ Covered by my fuzz targets (10 functions)
+###  Covered by my fuzz targets (10 functions)
 
 | Function | File | Fuzz Target | Result |
 |---|---|---|---|
-| `decode()` | `config.go:210` | `FuzzConfigDecode`, `FuzzConfigDecodeAllFields` | 🔴 Bug |
-| `validate()` | `config.go:68` | `FuzzConfigValidate` | ✅ 2.1M inputs |
-| `getConfigFromSpec()` | `config.go:116` | `FuzzGetConfigFromSpec` | ✅ 1.7M inputs |
-| JSON unmarshal | `config.go:179` | `FuzzConfigJSONRoundTrip` | ✅ 2.1M inputs |
-| `subnetMaskToCIDR()` | `unikernels/utils.go:24` | `FuzzSubnetMaskToCIDR`, `FuzzSubnetMaskToCIDRContiguity` | 🔴 Bug |
-| `bytesToMiB()` | `hypervisors/utils.go:45` | `FuzzBytesToMiB` | ✅ 3.3M inputs |
-| `bytesToMB()` | `hypervisors/utils.go:50` | `FuzzBytesToMB` | ✅ 2.4M inputs |
-| `BytesToStringMB()` | `hypervisors/utils.go:55` | `FuzzBytesToStringMB` | ✅ 2.5M inputs |
-| `appendNonEmpty()` | `hypervisors/utils.go:38` | `FuzzAppendNonEmpty` | ✅ 2.6M inputs |
-| `bytemsg/int32msg.Serialize()` | `ipc_message.go` | `FuzzBytemsgSerialize`, `FuzzInt32msgSerialize` | ✅ 4.4M inputs |
+| `decode()` | `config.go:210` | `FuzzConfigDecode`, `FuzzConfigDecodeAllFields` |  Bug |
+| `validate()` | `config.go:68` | `FuzzConfigValidate` |  2.1M inputs |
+| `getConfigFromSpec()` | `config.go:116` | `FuzzGetConfigFromSpec` |  1.7M inputs |
+| JSON unmarshal | `config.go:179` | `FuzzConfigJSONRoundTrip` |  2.1M inputs |
+| `subnetMaskToCIDR()` | `unikernels/utils.go:24` | `FuzzSubnetMaskToCIDR`, `FuzzSubnetMaskToCIDRContiguity` |  Bug |
+| `bytesToMiB()` | `hypervisors/utils.go:45` | `FuzzBytesToMiB` |  3.3M inputs |
+| `bytesToMB()` | `hypervisors/utils.go:50` | `FuzzBytesToMB` |  2.4M inputs |
+| `BytesToStringMB()` | `hypervisors/utils.go:55` | `FuzzBytesToStringMB` |  2.5M inputs |
+| `appendNonEmpty()` | `hypervisors/utils.go:38` | `FuzzAppendNonEmpty` |  2.6M inputs |
+| `bytemsg/int32msg.Serialize()` | `ipc_message.go` | `FuzzBytemsgSerialize`, `FuzzInt32msgSerialize` |  4.4M inputs |
 
-### 🟡 Not yet covered — planned for mentorship
+### Not yet covered — planned for mentorship
 
 | Function | File | Why It Needs Fuzz Coverage | Refactoring Required? |
 |---|---|---|---|
@@ -196,7 +196,6 @@ Alternative: If OSS-Fuzz registration takes too long, implement **ClusterFuzzLit
 
 ## About Me
 
-<!-- Fill in: your name, background, relevant experience -->
-<!-- Mention: C, Go, Linux, Docker, any OS/systems coursework -->
+
 
 **LLM disclosure:** I used AI assistance to navigate the codebase and build test harnesses. I verified and understand all findings myself.
