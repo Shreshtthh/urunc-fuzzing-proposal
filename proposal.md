@@ -2,11 +2,51 @@
 
 ## Personal Details
 
-<!-- Fill in your details -->
+- **Name:** Shreshth Sharma
+- **Institution:** National Institute of Technology, Hamirpur
+- **Course:** Electronics and Communication Engineering
+- **Github:** [Shreshtthh](https://github.com/Shreshtthh)
+- **Email:** shreshth013@gmail.com
+
+I found the urunc fuzzing and robustness testing listing while browsing the CNCF LFX Mentorship catalog for infrastructure and cloud-native projects.
+
+Before applying, I wanted to make sure I actually understood what the work would entail and that I knew what to do, so I built a few things:
+
+- **[A working Go fuzzing harness](https://github.com/Shreshtthh/urunc-fuzzing-proposal)**: I explored the urunc codebase and wrote some basic native Go fuzz targets.
+- **[A detailed implementation plan](https://github.com/Shreshtthh/urunc-fuzz-poc/blob/master/implementation_plan.md)**: I mapped out each phase of the mentorship, from expanding the current Go test suite to the final OSS-Fuzz integration. I’ve scoped out this roadmap to get a clear view of the CI/CD architecture and testing bottlenecks before beginning the manual implementation.
+
+I don’t have a complete understanding of the entire urunc runtime yet, but I’ve read through the documentation, picked up the high-level design (how it acts as the "runc for unikernels" bridging OCI containers and VMs), and used my initial testing harness to validate what I’ve learned so far. The gaps in my understanding regarding deep CRI integration and edge-case error reporting are exactly the things what I’d love guidance on from the team.
+
+What draws me to this program is the chance to go deep into cloud-native infrastructure. I’ve won multiple hackathons (such as the Somnia AI and IQAI ADK TS hackathons) and I genuinely love the intensity of building something from scratch in 48 hours, but I’ve started to notice that hackathon code rarely outlives the demo. Contributing to MetaBrainz/ListenBrainz gave me my first taste of what sustained open-source work feels like: writing code that gets reviewed by core maintainers, shipped to real users, and actually sticks around. With this project, I finally have the runway to do that at a much deeper technical level, spending months mastering one critical infrastructure problem.
+
+In terms of background, while my portfolio includes a wide variety of projects across different domains ranging from decentralized applications to competitive programming in C++, I have recently been specifically focussing on Go for backend and systems engineering. My foundational Go projects include a custom web server and an e-commerce application, which laid the groundwork for my current project: Kache. Kache is a distributed, persistent Key-Value store written entirely in Go. Building it has involved implementing Raft consensus across a 3-node gRPC cluster, designing an in-memory SkipList for fast range queries, and writing a Write-Ahead Log for crash recovery. Designing a custom binary protocol to handle over 10,000 concurrent connections required me to carefully manage state and build a fully acyclic dependency graph. This hands-on experience with Go's concurrency models and edge-case handling translates directly to the mindset needed for writing rigorous fuzz tests. Furthermore, as a GitHub Campus Expert (1 of 33 globally from 2500+ applicants), my open-source background taught me how to read large codebases, match existing conventions, and work through code-review feedback.
+
+What I hope to get out of this mentorship is depth in systems programming and automated security testing. I want to understand what separates code that simply compiles from cloud-native infrastructure that is robust, predictable, and production-grade. I want to learn the intricacies of continuous fuzzing (OSS-Fuzz), proper error handling in Go, and how to write tests that catch edge cases in low-level container execution environments. Most of all, I want to ship something real: a comprehensive, automated testing pipeline that the urunc project will rely on as it grows within the CNCF Sandbox.
+
+This program is exactly the kind of opportunity I’ve been looking for: structured, mentored, and focused on work that matters beyond a demo. I’ve proven I can ship fast; now I want to prove I can secure and harden production-grade infrastructure.
+
+- **urunc Fuzzing POC/Harness:** [Shreshtthh/urunc-fuzz-poc](https://github.com/Shreshtthh/urunc-fuzz-poc)
+- **Implementation Plan:** [implementation_plan.md](https://github.com/Shreshtthh/urunc-fuzz-poc/blob/master/implementation_plan.md)
+
+
+
+
+
 
 ## Open Source Contributions
 
-<!-- Fill in your contributions -->
+I’ve been contributing to Open Source for a while now and try my best to do so well. To understand the exact vulnerabilities this mentorship aims to catch, I started auditing the urunc codebase directly and found an active edge case. Prior to this, I made sustained contributions to the MetaBrainz Foundation, teaching me how to match existing conventions, write code that survives CI/CD pipelines, and work through code-review feedback with core maintainers.
+
+**My Contributions (Shreshtthh):**
+
+- **urunc:** Investigated OCI annotation parsing behavior and assisted in scoping the deprecation of legacy configuration formats ([#983](https://github.com/urunc-dev/urunc/pull/983))
+- **ListenBrainz:** Fix Art Creator black text by using CSS custom properties ([#3685](https://github.com/metabrainz/listenbrainz-server/pull/3685))
+- **ListenBrainz:** Fix JSPF spec violations in playlist extension and identifier fields ([#3621](https://github.com/metabrainz/listenbrainz-server/pull/3621))
+- **ListenBrainz:** Show playlist track collage as opengraph image ([#3611](https://github.com/metabrainz/listenbrainz-server/pull/3611))
+- **ListenBrainz:** Import loved tracks from LibreFM ([#3587](https://github.com/metabrainz/listenbrainz-server/pull/3587))
+- **ListenBrainz:** Add Listen timestamp UX improvements ([#3553](https://github.com/metabrainz/listenbrainz-server/pull/3553))
+
+
 
 ## Project Overview
 
@@ -97,7 +137,7 @@ Every function in urunc that processes external input, with exact file paths and
 | `getConfigFromSpec()` | 116 | spec.Annotations map | Done (1.7M inputs, no bugs) |
 | `getConfigFromJSON()` | 158 | urunc.json file (JSON) | Planned, Phase 2 |
 | `tryDecode()` | 200 | Arbitrary string, base64 attempt | Planned, Phase 1 |
-| `decode()` | 210 | All UnikernelConfig fields, base64 | Done, BUG FOUND |
+| `decode()` | 210 | All UnikernelConfig fields, base64 | Done, (correct for encoded inputs; needs update when encoding deprecated) |
 
 **`pkg/unikontainers/block.go` (452 lines)**
 
@@ -157,28 +197,22 @@ Every function in urunc that processes external input, with exact file paths and
 
 ### Bugs found
 
-#### Bug 1: `decode()` silently corrupts plaintext annotation values
+#### Finding 1: decode() assumes all urunc.json values are base64-encoded
 
 **File:** `pkg/unikontainers/config.go:210`
-**Severity:** High. Causes silent misconfiguration with no error returned.
+**Status:** Working as designed today, but relevant to planned deprecation.
 
-`decode()` unconditionally base64-decodes every UnikernelConfig field. Plaintext values that happen to be valid base64 are silently decoded to garbage bytes:
+`decode()` unconditionally base64-decodes every `UnikernelConfig` field. This is correct for the current urunc.json format, where values are base64-encoded.
+
+However, the maintainers have confirmed they plan to deprecate the encoding ([#983](https://github.com/urunc-dev/urunc/issues/983)). bunny (the current image builder) already sends plaintext annotations. When urunc.json moves to plaintext as well, `decode()` will need to either be removed or made conditional to avoid corrupting plaintext values that are coincidentally valid base64:
 
 | Input (plaintext) | After decode() | Error returned |
 |---|---|---|
 | `"qemu"` | `"\xa9\xe9\xae"` (garbage) | `nil` |
-| `"unikraft"` | `"\xbax\xa4\xad\xa7\xed"` (garbage) | `nil` |
-| `"mewz"` | `"\x99\xec3"` (garbage) | `nil` |
-| `"\r"` (carriage return) | `""` (empty string) | `nil` |
+| `"0000"` | `"\xd3M4"` (garbage) | `nil` |
 
-**Root cause:** The base64 encoding originates in bima (the image builder). The containerd shim (`annotations.go:92`) passes encoded values through to `config.json`. When urunc runs without the shim (e.g., direct `ctr run --annotation`), annotations arrive as plaintext. `decode()` on line 210 runs unconditionally and corrupts them. The TODO on line 86 acknowledges this gap: *"in case of urunc executed without shim, the annotations would remain encoded."*
+**Relevance to fuzzing:** The deprecation transition (some urunc.json files encoded, some plaintext) is where fuzz testing adds value. A fuzz target can verify that the new detection logic correctly distinguishes between encoded and plaintext values across all possible inputs.
 
-**Reproduction:**
-```bash
-go test -run='^FuzzConfigDecode$' -fuzz='^FuzzConfigDecode$' -fuzztime=10s ./pkg/unikontainers/
-```
-
-**Proposed fix direction:** A protocol-level fix is ideal: add a `com.urunc.unikernel.encoding: base64` annotation in bima, and only decode when present. As a transitional fallback, a try-decode-then-validate heuristic can check whether the decoded bytes are valid UTF-8 (the garbage from accidental base64 matches like `"qemu"` to `"\xa9\xe9\xae"` is not valid UTF-8). This needs discussion with maintainers since edge cases exist.
 
 #### Bug 2: `subnetMaskToCIDR()` accepts non-contiguous masks
 
@@ -438,7 +472,7 @@ The continuously generated corpus from `-fuzztime` runs (which can grow to thous
 |---|---|---|
 | 1 | Fuzz targets for all 7 BuildExecCmd() implementations | PR with mock Unikernel + tests |
 | 2 | Fuzz targets for mapVFSFlag(), handleExplicitBlockImage(), tryDecode() | PR |
-| 3 | Bug-fix PRs for decode() and subnetMaskToCIDR(), fuzz CommandString() | 2 fix PRs + 1 test PR |
+| 3 | Bug-fix PR for subnetMaskToCIDR(), fuzz decode() deprecation transition, fuzz CommandString() | 1 fix PR + 2 test PRs |
 | 4 | Open architecture issues for Phase 2 refactors, begin getMountInfo() refactor | Issue + Refactor PR |
 | 5 | Refactor patchConfigJSON(): extract patchSpec() | Refactor PR |
 | 6 | Fuzz targets for parseMountInfoEntry(), patchSpec(), findMountForPath() | PR |
@@ -457,7 +491,7 @@ I will track statement coverage in `pkg/unikontainers` and `pkg/network` using `
 
 This mentorship will deliver:
 
-1. **Immediate safety improvements.** Two bugs fixed with regression-guarding fuzz tests. The `decode()` fix alone resolves a class of silent misconfigurations that affect every user running urunc without the containerd shim.
+1. **Immediate safety improvements.** One bug fixed (`subnetMaskToCIDR` contiguity check) with regression-guarding fuzz tests, plus fuzz targets prepared for the planned encoding deprecation transition in `decode()`.
 
 2. **A comprehensive fuzz test suite.** 20+ fuzz targets covering every input-parsing function in urunc. These run as regular `go test` commands, so any contributor can use them without extra tooling.
 
@@ -471,21 +505,16 @@ This mentorship will deliver:
 
 7. **Long-term engagement.** After the mentorship, I plan to continue maintaining the fuzz targets, triaging OSS-Fuzz reports, and reviewing fuzzing-related PRs. I also plan to write a blog post documenting the process and findings, which can serve as a reference for other CNCF projects looking to add fuzzing.
 
-## Personal Inspiration
 
-<!-- Fill in: why this project, why open source, why unikernels/containers -->
 
 ## Commitments
+- **Time commitment:** 40 hours/week
+- **Timezone:** IST (UTC + 5:30)
+- **Communication cadence:**
+  - Async daily updates on Slack/Discord summarizing what I worked on, what's blocked, and what's next
+  - Weekly summary report posted as a GitHub comment on the tracking issue, including coverage metrics and links to PRs submitted that week
+  - Available for a weekly video sync with my mentor at a mutually convenient time
+  - All PRs will include a clear description of the change, the property being tested, and reproduction instructions for any bugs found
 
-<!-- Fill in the first two lines below -->
-**Time commitment:** <!-- e.g., "I commit to working X hours per week for the 12-week duration." State if full-time or part-time, and mention any classes/work. -->
-
-**Timezone:** <!-- e.g., IST (UTC+5:30). Mention overlap hours with EU timezones if applicable. -->
-
-**Communication cadence:**
-- Async daily updates on Slack/Discord summarizing what I worked on, what's blocked, and what's next
-- Weekly summary report posted as a GitHub comment on the tracking issue, including coverage metrics and links to PRs submitted that week
-- Available for a 30-minute weekly video sync with my mentor at a mutually convenient time
-- All PRs will include a clear description of the change, the property being tested, and reproduction instructions for any bugs found
 
 **LLM disclosure:** I used AI assistance (Gemini, via Antigravity) to navigate the codebase and build test harnesses. I have verified and understand all findings myself. Every file path, line number, and code sample in this proposal was cross-referenced against the actual urunc source code.
